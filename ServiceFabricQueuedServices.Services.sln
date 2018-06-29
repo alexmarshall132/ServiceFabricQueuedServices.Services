@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27703.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Source", "Source", "{D5AEF0B0-A914-4455-8EF0-C2EBCA7297A6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceFabricQueuedServices.Services", "ServiceFabricQueuedServices.Services\ServiceFabricQueuedServices.Services.csproj", "{BA256CE6-BAD4-4169-BFA5-8F2757E8515E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BA256CE6-BAD4-4169-BFA5-8F2757E8515E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA256CE6-BAD4-4169-BFA5-8F2757E8515E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA256CE6-BAD4-4169-BFA5-8F2757E8515E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA256CE6-BAD4-4169-BFA5-8F2757E8515E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{BA256CE6-BAD4-4169-BFA5-8F2757E8515E} = {D5AEF0B0-A914-4455-8EF0-C2EBCA7297A6}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {39498B85-C3B9-4C9C-802A-C87242B53DF9}
+	EndGlobalSection
+EndGlobal
