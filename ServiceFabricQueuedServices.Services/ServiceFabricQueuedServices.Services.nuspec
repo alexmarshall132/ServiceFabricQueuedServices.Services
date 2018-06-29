@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>ServiceFabricQueuedServices.Services</id>
+    <version>$version$</version>
+    <title>ServiceFabricQueuedServices.Services</title>
+    <authors>Alex Marshall</authors>
+    <owners>Alex Marshall</owners>
+    <licenseUrl>https://github.com/alexmarshall132/ServiceFabricQueuedServices.Services/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/alexmarshall132/ServiceFabricQueuedServices.Services/</projectUrl>
+    <iconUrl>https://github.com/alexmarshall132/ServiceFabricQueuedServices.Services/</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Helper library for creating Service Fabric ServiceInstanceListeners to listen to Azure Service Bus queues for WCF messages</description>
+    <releaseNotes>Initial release of the library.</releaseNotes>
+    <copyright>Copyright 2018</copyright>
+    <tags>ServiceFabric WCF WcfCommunicationListener ServiceBus Queue</tags>
+  </metadata>
+</package>
