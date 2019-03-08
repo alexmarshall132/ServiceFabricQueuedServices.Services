@@ -45,6 +45,10 @@ namespace ServiceFabricQueuedServices.Services
 	    /// A <see cref="Func{TResult}"/> returning the name of the queue to be used. If null, the default behavior
 	    /// will be to use the name of <typeparamref name="TServiceContract"/>.
 	    /// </param>
+	    /// <param name="endpointBehaviors">
+	    /// The <see cref="IEndpointBehavior"/>s that are to be applied to the generated WCF <see cref="ServiceHost"/>
+	    /// endpoints.
+	    /// </param>
 	    /// <typeparam name="TServiceContract">
 	    /// The interface that bears a <see cref="ServiceContractAttribute"/> and <see cref="OperationContractAttribute"/>s
 	    /// on its methods to denote it as a ServiceModel (WCF) service.
@@ -67,7 +71,8 @@ namespace ServiceFabricQueuedServices.Services
 			string configPackageName = "Config",
 			string sectionName = "ServiceBus",
 			string listenConnectionStringParameterName = "ListenConnectionString",
-			Func<string> queueNameProvider = null)
+			Func<string> queueNameProvider = null,
+			params IEndpointBehavior[] endpointBehaviors)
 		{
 			if (wcfServiceObject == null)
 			{
@@ -101,52 +106,58 @@ namespace ServiceFabricQueuedServices.Services
 					wcfServiceObject: wcfServiceObject,
 					netMessagingBinding: netMessagingBinding,
 					queueNameProvider: queueNameProvider,
-					connectionStringResolver: ListenConnectionString
+					connectionStringResolver: ListenConnectionString,
+					behaviors: endpointBehaviors
 				)
 			);
 		}
 
-	    /// <summary>
-	    /// Creates a new <see cref="ServiceInstanceListener"/> capable of listening to a queue containing
-	    /// WCF queued messages for the given <typeparamref name="TServiceContract"/>.
-	    /// </summary>
-	    /// <param name="wcfServiceObject">
-	    /// The WCF service instance to be used for servicing requests. Must be a stateless service. Must not be null.
-	    /// </param>
-	    /// <param name="netMessagingBinding">
-	    /// The binding to be used to listen to the queue. Must not be null.
-	    /// </param>
-	    /// <param name="connectionString">
-	    /// The connection string to be used for connecting to the Azure Service Bus. Must not be null or empty.
-	    /// </param>
-	    /// <param name="queueNameProvider">
-	    /// A <see cref="Func{TResult}"/> returning the name of the queue to be used. If null, the default behavior
-	    /// will be to use the name of <typeparamref name="TServiceContract"/>.
-	    /// </param>
+		/// <summary>
+		/// Creates a new <see cref="ServiceInstanceListener"/> capable of listening to a queue containing
+		/// WCF queued messages for the given <typeparamref name="TServiceContract"/>.
+		/// </summary>
+		/// <param name="wcfServiceObject">
+		/// The WCF service instance to be used for servicing requests. Must be a stateless service. Must not be null.
+		/// </param>
+		/// <param name="netMessagingBinding">
+		/// The binding to be used to listen to the queue. Must not be null.
+		/// </param>
+		/// <param name="connectionString">
+		/// The connection string to be used for connecting to the Azure Service Bus. Must not be null or empty.
+		/// </param>
+		/// <param name="queueNameProvider">
+		/// A <see cref="Func{TResult}"/> returning the name of the queue to be used. If null, the default behavior
+		/// will be to use the name of <typeparamref name="TServiceContract"/>.
+		/// </param>
+		/// <param name="endpointBehaviors">
+		/// The <see cref="IEndpointBehavior"/>s that are to be applied to the generated WCF <see cref="ServiceHost"/>
+		/// endpoints.
+		/// </param>
 	    /// <typeparam name="TServiceContract">
-	    /// The interface that bears a <see cref="ServiceContractAttribute"/> and <see cref="OperationContractAttribute"/>s
-	    /// on its methods to denote it as a ServiceModel (WCF) service.
-	    /// </typeparam>
-	    /// <exception cref="ArgumentException">
-	    /// Thrown if <paramref name="connectionString"/> is null or empty.
-	    /// </exception>
-	    /// <returns>
-	    /// A new <see cref="ServiceInstanceListener"/> configured to listen to an Azure Service Bus for WCF
-	    /// messages for the given <typeparamref name="TServiceContract"/> service contract. Guaranteed not to
-	    /// be null.
-	    /// </returns>
-	    /// <exception cref="ArgumentNullException">
-	    /// Thrown if <paramref name="wcfServiceObject"/> or <see cref="NetMessagingBinding"/> are null.
-	    /// </exception>
-	    /// <exception cref="InvalidOperationException">
-	    /// Thrown if the endpoint for the Service Bus queue's containing Azure Service Bus namespace could
-	    /// not be resolved from the connection string.
-	    /// </exception>
-	    public static ServiceInstanceListener CreateQueuedServiceBusListener<TServiceContract>(
+		/// The interface that bears a <see cref="ServiceContractAttribute"/> and <see cref="OperationContractAttribute"/>s
+		/// on its methods to denote it as a ServiceModel (WCF) service.
+		/// </typeparam>
+		/// <exception cref="ArgumentException">
+		/// Thrown if <paramref name="connectionString"/> is null or empty.
+		/// </exception>
+		/// <returns>
+		/// A new <see cref="ServiceInstanceListener"/> configured to listen to an Azure Service Bus for WCF
+		/// messages for the given <typeparamref name="TServiceContract"/> service contract. Guaranteed not to
+		/// be null.
+		/// </returns>
+		/// <exception cref="ArgumentNullException">
+		/// Thrown if <paramref name="wcfServiceObject"/> or <see cref="NetMessagingBinding"/> are null.
+		/// </exception>
+		/// <exception cref="InvalidOperationException">
+		/// Thrown if the endpoint for the Service Bus queue's containing Azure Service Bus namespace could
+		/// not be resolved from the connection string.
+		/// </exception>
+		public static ServiceInstanceListener CreateQueuedServiceBusListener<TServiceContract>(
 			TServiceContract wcfServiceObject,
 			NetMessagingBinding netMessagingBinding,
 			string connectionString,
-			Func<string> queueNameProvider = null)
+			Func<string> queueNameProvider = null,
+			params IEndpointBehavior[] endpointBehaviors)
 		{
 			if (wcfServiceObject == null)
 			{
@@ -169,7 +180,8 @@ namespace ServiceFabricQueuedServices.Services
 					wcfServiceObject: wcfServiceObject,
 					netMessagingBinding: netMessagingBinding,
 					queueNameProvider: queueNameProvider,
-					connectionStringResolver: c => connectionString
+					connectionStringResolver: c => connectionString,
+					behaviors: endpointBehaviors
 				)
 			);
 		}
@@ -179,8 +191,39 @@ namespace ServiceFabricQueuedServices.Services
 		    TServiceContract wcfServiceObject,
 		    NetMessagingBinding netMessagingBinding,
 		    Func<string> queueNameProvider,
-		    Func<ServiceContext, string> connectionStringResolver)
+		    Func<ServiceContext, string> connectionStringResolver,
+		    IEndpointBehavior[] behaviors)
 	    {
+		    if (context == null)
+		    {
+			    throw new ArgumentNullException(nameof(context));
+		    }
+
+		    if (wcfServiceObject == null)
+		    {
+			    throw new ArgumentNullException(nameof(wcfServiceObject));
+		    }
+
+		    if (netMessagingBinding == null)
+		    {
+			    throw new ArgumentNullException(nameof(netMessagingBinding));
+		    }
+
+		    if (queueNameProvider == null)
+		    {
+			    throw new ArgumentNullException(nameof(queueNameProvider));
+		    }
+
+		    if (connectionStringResolver == null)
+		    {
+			    throw new ArgumentNullException(nameof(connectionStringResolver));
+		    }
+
+		    if (behaviors == null)
+		    {
+			    throw new ArgumentNullException(nameof(behaviors));
+		    }
+
 		    string listenConnectionString = connectionStringResolver(context);
 
 		    ServiceBusConnectionStringBuilder builder = new ServiceBusConnectionStringBuilder(listenConnectionString);
@@ -228,6 +271,11 @@ namespace ServiceFabricQueuedServices.Services
 		            sharedAccessKey: builder.SharedAccessKey
 		        )
 	        });
+
+		    foreach (IEndpointBehavior behavior in behaviors)
+		    {
+			    serviceEndpoint.Behaviors.Add(behavior);
+		    }
 
 		    return listener;
 	    }
