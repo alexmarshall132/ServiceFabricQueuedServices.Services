@@ -9,9 +9,14 @@ using Microsoft.ServiceFabric.Services.Communication.Wcf.Runtime;
 
 namespace ServiceFabricQueuedServices.Services
 {
+	using System.Fabric;
 	using System.Fabric.Description;
 	using System.Net;
 
+	/// <summary>
+	/// Utility method for creating new <see cref="ServiceInstanceListener"/> instances that use
+	/// Azure Service Bus queues for transport with WCF service objects as the processing mechanism.
+	/// </summary>
 	public static class QueuedServiceInstanceListenerUtility
     {
 	    /// <summary>
@@ -74,57 +79,31 @@ namespace ServiceFabricQueuedServices.Services
 				throw new ArgumentNullException(nameof(netMessagingBinding));
 			}
 
-			return new ServiceInstanceListener(context =>
+			string ListenConnectionString(ServiceContext statelessServiceContext)
 			{
-				ConfigurationProperty configurationProperty = context.CodePackageActivationContext.GetConfigurationPackageObject(configPackageName).Settings.Sections[sectionName].Parameters[listenConnectionStringParameterName];
-
-				string listenConnectionString = configurationProperty.IsEncrypted ? new NetworkCredential("junk", configurationProperty.DecryptValue()).Password : configurationProperty.Value;
-
-				ServiceBusConnectionStringBuilder builder = new ServiceBusConnectionStringBuilder(listenConnectionString);
-
-				Uri endpointUri;
-
-				try
+				if (statelessServiceContext == null)
 				{
-					endpointUri = builder.Endpoints.SingleOrDefault();
-				}
-				catch (InvalidOperationException)
-				{
-					throw new InvalidOperationException("More than one endpoint was detected in connection string");
+					throw new ArgumentNullException(nameof(statelessServiceContext));
 				}
 
-				if (endpointUri == null)
-				{
-					throw new InvalidOperationException("No endpoint was detected in connection string");
-				}
+				ConfigurationProperty configurationProperty = statelessServiceContext.CodePackageActivationContext
+					.GetConfigurationPackageObject(configPackageName).Settings.Sections[sectionName]
+					.Parameters[listenConnectionStringParameterName];
 
-				UriBuilder uriBuilder = new UriBuilder(endpointUri);
+				return configurationProperty.IsEncrypted
+					       ? new NetworkCredential("junk", configurationProperty.DecryptValue()).Password
+					       : configurationProperty.Value;
+			}
 
-				var listener = new WcfCommunicationListener<TServiceContract>(
+			return new ServiceInstanceListener(
+				createCommunicationListener: context => ResolveCommunicationListener(
+					context: context,
 					wcfServiceObject: wcfServiceObject,
-					serviceContext: context,
-
-					//
-					// The name of the endpoint configured in the ServiceManifest under the Endpoints section
-					// that identifies the endpoint that the WCF ServiceHost should listen on.
-					//
-					address: new EndpointAddress(ServiceBusEnvironment.CreateServiceUri("sb", uriBuilder.Host.Split('.').First(), queueNameProvider == null ? typeof(TServiceContract).Name : queueNameProvider.Invoke())),
-
-					//
-					// Populate the binding information that you want the service to use.
-					//
-					listenerBinding: netMessagingBinding
-				);
-
-				ServiceEndpoint serviceEndpoint = listener.ServiceHost.Description.Endpoints.Last();
-
-				serviceEndpoint.Behaviors.Add(new TransportClientEndpointBehavior()
-				{
-					TokenProvider = TokenProvider.CreateSharedAccessSignatureTokenProvider(keyName: builder.SharedAccessKeyName, sharedAccessKey: builder.SharedAccessKey)
-				});
-
-				return listener;
-			});
+					netMessagingBinding: netMessagingBinding,
+					queueNameProvider: queueNameProvider,
+					connectionStringResolver: ListenConnectionString
+				)
+			);
 		}
 
 	    /// <summary>
@@ -137,17 +116,8 @@ namespace ServiceFabricQueuedServices.Services
 	    /// <param name="netMessagingBinding">
 	    /// The binding to be used to listen to the queue. Must not be null.
 	    /// </param>
-	    /// <param name="configPackageName">
-	    /// The name of the configuration package used to retrieve configuration values. If null, the default
-	    /// value is "Config".
-	    /// </param>
-	    /// <param name="sectionName">
-	    /// The name of the configuration section used to retrieve configuration values. If null, the default
-	    /// value is "ServiceBus".
-	    /// </param>
-	    /// <param name="listenConnectionStringParameterName">
-	    /// The name of the configuration value that provides a Service Bus connection string with Listen privileges.
-	    /// If null, the default is "ListenConnectionString".
+	    /// <param name="connectionString">
+	    /// The connection string to be used for connecting to the Azure Service Bus. Must not be null or empty.
 	    /// </param>
 	    /// <param name="queueNameProvider">
 	    /// A <see cref="Func{TResult}"/> returning the name of the queue to be used. If null, the default behavior
@@ -157,6 +127,9 @@ namespace ServiceFabricQueuedServices.Services
 	    /// The interface that bears a <see cref="ServiceContractAttribute"/> and <see cref="OperationContractAttribute"/>s
 	    /// on its methods to denote it as a ServiceModel (WCF) service.
 	    /// </typeparam>
+	    /// <exception cref="ArgumentException">
+	    /// Thrown if <paramref name="connectionString"/> is null or empty.
+	    /// </exception>
 	    /// <returns>
 	    /// A new <see cref="ServiceInstanceListener"/> configured to listen to an Azure Service Bus for WCF
 	    /// messages for the given <typeparamref name="TServiceContract"/> service contract. Guaranteed not to
@@ -190,53 +163,73 @@ namespace ServiceFabricQueuedServices.Services
 				throw new ArgumentException("Must not be null or empty", nameof(connectionString));
 			}
 
-			return new ServiceInstanceListener(context =>
-			{
-				ServiceBusConnectionStringBuilder builder = new ServiceBusConnectionStringBuilder(connectionString);
-
-				Uri endpointUri;
-
-				try
-				{
-					endpointUri = builder.Endpoints.SingleOrDefault();
-				}
-				catch (InvalidOperationException)
-				{
-					throw new InvalidOperationException("More than one endpoint was detected in connection string");
-				}
-
-				if (endpointUri == null)
-				{
-					throw new InvalidOperationException("No endpoint was detected in connection string");
-				}
-
-				UriBuilder uriBuilder = new UriBuilder(endpointUri);
-
-				var listener = new WcfCommunicationListener<TServiceContract>(
+			return new ServiceInstanceListener(
+				createCommunicationListener: context => ResolveCommunicationListener(
+					context: context,
 					wcfServiceObject: wcfServiceObject,
-					serviceContext: context,
-
-					//
-					// The name of the endpoint configured in the ServiceManifest under the Endpoints section
-					// that identifies the endpoint that the WCF ServiceHost should listen on.
-					//
-					address: new EndpointAddress(ServiceBusEnvironment.CreateServiceUri("sb", uriBuilder.Host.Split('.').First(), queueNameProvider == null ? typeof(TServiceContract).Name : queueNameProvider.Invoke())),
-
-					//
-					// Populate the binding information that you want the service to use.
-					//
-					listenerBinding: netMessagingBinding
-				);
-
-				ServiceEndpoint serviceEndpoint = listener.ServiceHost.Description.Endpoints.Last();
-
-				serviceEndpoint.Behaviors.Add(new TransportClientEndpointBehavior()
-				{
-					TokenProvider = TokenProvider.CreateSharedAccessSignatureTokenProvider(keyName: builder.SharedAccessKeyName, sharedAccessKey: builder.SharedAccessKey)
-				});
-
-				return listener;
-			});
+					netMessagingBinding: netMessagingBinding,
+					queueNameProvider: queueNameProvider,
+					connectionStringResolver: c => connectionString
+				)
+			);
 		}
-	}
+
+	    private static WcfCommunicationListener<TServiceContract> ResolveCommunicationListener<TServiceContract>(
+		    StatelessServiceContext context,
+		    TServiceContract wcfServiceObject,
+		    NetMessagingBinding netMessagingBinding,
+		    Func<string> queueNameProvider,
+		    Func<ServiceContext, string> connectionStringResolver)
+	    {
+		    string listenConnectionString = connectionStringResolver(context);
+
+		    ServiceBusConnectionStringBuilder builder = new ServiceBusConnectionStringBuilder(listenConnectionString);
+
+		    Uri endpointUri;
+
+		    try
+		    {
+			    endpointUri = builder.Endpoints.SingleOrDefault();
+		    }
+		    catch (InvalidOperationException)
+		    {
+			    throw new InvalidOperationException("More than one endpoint was detected in connection string");
+		    }
+
+		    if (endpointUri == null)
+		    {
+			    throw new InvalidOperationException("No endpoint was detected in connection string");
+		    }
+
+		    UriBuilder uriBuilder = new UriBuilder(endpointUri);
+
+		    var listener = new WcfCommunicationListener<TServiceContract>(
+			    wcfServiceObject: wcfServiceObject,
+			    serviceContext: context,
+
+			    //
+			    // The name of the endpoint configured in the ServiceManifest under the Endpoints section
+			    // that identifies the endpoint that the WCF ServiceHost should listen on.
+			    //
+			    address: new EndpointAddress(ServiceBusEnvironment.CreateServiceUri("sb", uriBuilder.Host.Split('.').First(), queueNameProvider == null ? typeof(TServiceContract).Name : queueNameProvider.Invoke())),
+
+			    //
+			    // Populate the binding information that you want the service to use.
+			    //
+			    listenerBinding: netMessagingBinding
+		    );
+
+		    ServiceEndpoint serviceEndpoint = listener.ServiceHost.Description.Endpoints.Last();
+
+		    serviceEndpoint.Behaviors.Add(new TransportClientEndpointBehavior
+			{
+	            TokenProvider = TokenProvider.CreateSharedAccessSignatureTokenProvider(
+		            keyName: builder.SharedAccessKeyName,
+		            sharedAccessKey: builder.SharedAccessKey
+		        )
+	        });
+
+		    return listener;
+	    }
+    }
 }
