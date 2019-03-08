@@ -84,7 +84,7 @@ namespace ServiceFabricQueuedServices.Services
 				throw new ArgumentNullException(nameof(netMessagingBinding));
 			}
 
-			string ListenConnectionString(ServiceContext statelessServiceContext)
+			string ResolveConnectionStringFromSFParameters(ServiceContext statelessServiceContext)
 			{
 				if (statelessServiceContext == null)
 				{
@@ -106,7 +106,7 @@ namespace ServiceFabricQueuedServices.Services
 					wcfServiceObject: wcfServiceObject,
 					netMessagingBinding: netMessagingBinding,
 					queueNameProvider: queueNameProvider,
-					connectionStringResolver: ListenConnectionString,
+					connectionStringResolver: ResolveConnectionStringFromSFParameters,
 					behaviors: endpointBehaviors
 				)
 			);
@@ -207,11 +207,6 @@ namespace ServiceFabricQueuedServices.Services
 		    if (netMessagingBinding == null)
 		    {
 			    throw new ArgumentNullException(nameof(netMessagingBinding));
-		    }
-
-		    if (queueNameProvider == null)
-		    {
-			    throw new ArgumentNullException(nameof(queueNameProvider));
 		    }
 
 		    if (connectionStringResolver == null)
